@@ -1,0 +1,5 @@
+.DS_Store
+
+# Chisel runtime state written in target repositories
+.claude/chisel-loop.local.md
+.claude/chisel/

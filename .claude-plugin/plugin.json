@@ -1,0 +1,15 @@
+{
+  "name": "chisel",
+  "description": "Autonomous PR refinement loop for GitHub + Greptile with stop-hook safety gates",
+  "version": "0.1.0",
+  "author": {
+    "name": "Cris Og"
+  },
+  "homepage": "https://github.com/crisog/chisel",
+  "repository": "https://github.com/crisog/chisel",
+  "license": "MIT",
+  "keywords": ["github", "greptile", "pr", "review", "automation", "workflow"],
+  "skills": "./skills/",
+  "commands": "./commands/",
+  "hooks": "./hooks/hooks.json"
+}

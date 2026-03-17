@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# SessionStart hook for chisel plugin
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+escape_for_json() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\t'/\\t}"
+    printf '%s' "$s"
+}
+
+skill_content=$(cat "${PLUGIN_ROOT}/skills/using-chisel/SKILL.md" 2>/dev/null || echo "Error reading using-chisel skill")
+skill_escaped=$(escape_for_json "$skill_content")
+
+context="<EXTREMELY_IMPORTANT>\nYou have Chisel.\n\nChisel is a GitHub + Greptile PR refinement loop with safety gates.\n\nBelow is the full content of your 'chisel:using-chisel' skill:\n\n${skill_escaped}\n</EXTREMELY_IMPORTANT>"
+
+if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then
+  cat <<EOF
+{
+  "hookSpecificOutput": {
+    "hookEventName": "SessionStart",
+    "additionalContext": "${context}"
+  }
+}
+EOF
+else
+  cat <<EOF
+{
+  "additional_context": "${context}"
+}
+EOF
+fi
