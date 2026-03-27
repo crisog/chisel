@@ -8,6 +8,7 @@ const TERMINAL_STATUSES = new Set([
   "safety_max_iterations",
   "safety_no_progress",
   "safety_review_failed",
+  "safety_ci_max_retries",
   "cancelled",
 ]);
 
@@ -252,6 +253,8 @@ function appendRunHistory(statePath, state, eventName, sessionId) {
     latest_score: state.latest_score ?? null,
     unresolved_count: Array.isArray(state.unresolved_ids) ? state.unresolved_ids.length : null,
     unresolved_ids: Array.isArray(state.unresolved_ids) ? state.unresolved_ids : [],
+    ci_status: state.ci_status || null,
+    ci_failures: Array.isArray(state.ci_failures) ? state.ci_failures : [],
   });
 
   fs.writeFileSync(historyPath, `${JSON.stringify(data, null, 2)}\n`, "utf8");

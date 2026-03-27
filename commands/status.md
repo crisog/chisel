@@ -31,6 +31,8 @@ Return:
 - `iteration / max_iterations`
 - `latest_score`
 - `unresolved_count`
+- `ci_status`
+- `ci_failures` (list of failed check names, if any)
 - `updated_at`
 - `backup_branch`
 - latest terminal summary from run history (if available)

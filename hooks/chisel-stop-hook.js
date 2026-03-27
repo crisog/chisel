@@ -54,6 +54,8 @@ function buildBlockReason(state, statePath, errorDetail = null) {
   const unresolvedCount = Array.isArray(state.unresolved_ids) ? state.unresolved_ids.length : 0;
   const score = state.latest_score == null ? "unknown" : String(state.latest_score);
   const status = state.status || "running";
+  const ciStatus = state.ci_status || "unknown";
+  const ciFailures = Array.isArray(state.ci_failures) ? state.ci_failures : [];
 
   if (errorDetail) {
     return `# Chisel Gate Active (Fail-Closed)
@@ -67,6 +69,10 @@ Run \`/chisel:status\` to inspect current loop state.
 If you need to exit immediately, run \`/chisel:cancel-loop --force\` and then exit again.`;
   }
 
+  const ciLine = ciFailures.length > 0
+    ? `- CI: \`${ciStatus}\` (failing: ${ciFailures.join(", ")})`
+    : `- CI: \`${ciStatus}\``;
+
   return `# Chisel Loop Still Active
 
 Chisel blocked this exit because the refinement loop is still in progress.
@@ -75,6 +81,7 @@ Chisel blocked this exit because the refinement loop is still in progress.
 - Iteration: \`${iter}/${maxIter || "?"}\`
 - Latest score: \`${score}\`
 - Unresolved comments: \`${unresolvedCount}\`
+${ciLine}
 - State file: \`${statePath}\`
 
 Continue with \`/chisel:run-loop\` or inspect details with \`/chisel:status\`.

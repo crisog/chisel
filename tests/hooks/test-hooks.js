@@ -109,6 +109,78 @@ function testStopBlocksMalformedState() {
   assert.match(out.reason, /Fail-Closed/);
 }
 
+function testStopAllowsCiMaxRetries() {
+  const repo = makeTempRepo();
+  writeState(repo, [
+    "active: true",
+    'status: "safety_ci_max_retries"',
+    "iteration: 3",
+    "max_iterations: 5",
+    "latest_score: 5",
+    "unresolved_ids: []",
+    'ci_status: "failing"',
+    'ci_failures: ["Frontend"]',
+  ]);
+
+  const out = runNode(STOP_HOOK, {
+    cwd: repo,
+    session_id: "t-ci-fail",
+    hook_event_name: "Stop",
+  });
+
+  assert.strictEqual(out.decision, undefined);
+}
+
+function testStopBlocksShowsCiStatus() {
+  const repo = makeTempRepo();
+  writeState(repo, [
+    "active: true",
+    'status: "running"',
+    "iteration: 2",
+    "max_iterations: 5",
+    "latest_score: 4",
+    'unresolved_ids: ["c1"]',
+    'ci_status: "failing"',
+    'ci_failures: ["Frontend","Backend"]',
+  ]);
+
+  const out = runNode(STOP_HOOK, {
+    cwd: repo,
+    session_id: "t-ci-block",
+    hook_event_name: "Stop",
+  });
+
+  assert.strictEqual(out.decision, "block");
+  assert.match(out.reason, /CI:.*failing/);
+  assert.match(out.reason, /Frontend/);
+}
+
+function testSessionEndCapturesCiFields() {
+  const repo = makeTempRepo();
+  writeState(repo, [
+    "active: false",
+    'status: "success"',
+    "pr_number: 456",
+    "iteration: 2",
+    "max_iterations: 5",
+    "latest_score: 5",
+    "unresolved_ids: []",
+    'ci_status: "passing"',
+    "ci_failures: []",
+  ]);
+
+  runNode(SESSION_END_HOOK, {
+    cwd: repo,
+    session_id: "t-ci-end",
+    hook_event_name: "SessionEnd",
+  });
+
+  const historyPath = path.join(repo, ".claude", "chisel", "runs", "456.json");
+  const data = JSON.parse(fs.readFileSync(historyPath, "utf8"));
+  assert.strictEqual(data.events[0].ci_status, "passing");
+  assert.deepStrictEqual(data.events[0].ci_failures, []);
+}
+
 function testSessionEndAppendsHistory() {
   const repo = makeTempRepo();
   writeState(repo, [
@@ -141,6 +213,9 @@ function main() {
   testStopBlocksWhenActive();
   testStopAllowsTerminal();
   testStopBlocksMalformedState();
+  testStopAllowsCiMaxRetries();
+  testStopBlocksShowsCiStatus();
+  testSessionEndCapturesCiFields();
   testSessionEndAppendsHistory();
   process.stdout.write("All hook tests passed.\n");
 }

@@ -11,7 +11,8 @@ Chisel is a PR refinement loop:
 2. Trigger automated review
 3. Fix findings
 4. Push updates
-5. Repeat until gate passes or safety stop
+5. Wait for CI, fix failures if any
+6. Repeat until all gates pass or safety stop
 
 ## Rules
 
@@ -22,16 +23,18 @@ Chisel is a PR refinement loop:
 
 ## Exit Gate
 
-Default success criteria:
+Default success criteria (**all three must be true**):
 
 - Greptile confidence score is `5/5`
 - Unresolved Greptile-generated comments are `0`
+- All GitHub required checks are passing
 
 Safety stops:
 
 - Max iterations reached
 - No progress across consecutive iterations
 - Review run failed or cannot complete
+- CI failures could not be auto-fixed after 2 consecutive attempts
 
 ## Preflight
 

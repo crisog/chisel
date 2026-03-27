@@ -34,7 +34,9 @@ Frontmatter keys (required):
 - `target_score`: integer (default `5`)
 - `latest_score`: number or `null`
 - `unresolved_ids`: JSON array of strings
-- `status`: one of `running`, `success`, `safety_max_iterations`, `safety_no_progress`, `safety_review_failed`, `cancelled`
+- `ci_status`: one of `pending`, `passing`, `failing`, `unknown`
+- `ci_failures`: JSON array of strings (failed check names)
+- `status`: one of `running`, `success`, `safety_max_iterations`, `safety_no_progress`, `safety_review_failed`, `safety_ci_max_retries`, `cancelled`
 - `backup_branch`: string
 - `started_at`: ISO timestamp
 - `updated_at`: ISO timestamp
@@ -82,7 +84,7 @@ If any preflight check fails, stop with the precise remediation and do not write
    ```bash
    git branch "chisel/backup/pr-<PR>-<YYYYmmdd-HHMMSS>" "$(git rev-parse HEAD)"
    ```
-5. Write the state file with `active: true`, `iteration: 0`, `status: running`.
+5. Write the state file with `active: true`, `iteration: 0`, `status: running`, `ci_status: unknown`, `ci_failures: []`.
 
 ## Step 3: Iterative Refinement
 
@@ -101,28 +103,55 @@ Repeat until terminal status:
      - `greptileGenerated=true`
      - `addressed=false`
 5. Compute unresolved IDs from comments (stable per iteration).
-6. Success check:
-   - If confidence is `5` and unresolved count is `0`, set:
-     - `status: success`
-     - `active: false`
-     - write summary
-     - stop.
-7. Safety checks:
-   - If review fails/terminal error: `status: safety_review_failed`, `active: false`, stop.
-   - If `iteration >= max_iterations`: `status: safety_max_iterations`, `active: false`, stop.
-   - If unresolved IDs did not change from previous iteration: `status: safety_no_progress`, `active: false`, stop.
-8. Fix pass:
-   - Resolve actionable findings in code.
-   - Run best-effort project checks.
+6. **CI gate** — check GitHub required checks:
+   - Run:
+     ```bash
+     gh pr checks <PR> --json name,state,conclusion --jq '[.[] | select(.state != "")]'
+     ```
+   - Wait for all checks to reach a terminal state (not `pending`/`queued`/`in_progress`). Poll with `sleep 30`, timeout after 10 minutes.
+   - Classify:
+     - `passing`: all checks succeeded or skipped.
+     - `failing`: one or more checks failed. Record failed check names in `ci_failures`.
+   - Update state: `ci_status`, `ci_failures`.
+7. **CI fix pass** — if `ci_status` is `failing`:
+   - For each failed check, fetch logs:
+     ```bash
+     gh pr checks <PR> --json name,state,conclusion,link --jq '[.[] | select(.conclusion == "failure")]'
+     ```
+   - For each failed run, extract actionable errors:
+     ```bash
+     gh run view <RUN_ID> --log-failed 2>&1 | tail -80
+     ```
+   - Parse the failure output for lint errors, type errors, or build errors.
+   - Fix the identified issues in code.
    - Create exactly one commit:
      ```text
-     chisel: resolve greptile findings (iter N/MAX)
+     chisel: fix CI failures (iter N/MAX)
      ```
    - Push branch.
-9. Attempt GitHub thread resolution for fixed findings:
-   - Use `gh api graphql` `resolveReviewThread` only for high-confidence matches (same file + overlapping lines + missing from latest unresolved set).
-   - If mapping is ambiguous, skip and report.
-10. Update state file (`latest_score`, `unresolved_ids`, `updated_at`) and continue.
+   - Re-poll CI (same logic as step 6). If CI still fails after 2 consecutive CI fix attempts within the same iteration, set `status: safety_ci_max_retries`, `active: false`, stop.
+   - Once CI passes, continue to step 8.
+8. Success check — **all three conditions must be true**:
+   - Greptile confidence is `5`.
+   - Unresolved Greptile comment count is `0`.
+   - `ci_status` is `passing`.
+   - If all met, set `status: success`, `active: false`, write summary, stop.
+9. Safety checks:
+   - If review fails/terminal error: `status: safety_review_failed`, `active: false`, stop.
+   - If `iteration >= max_iterations`: `status: safety_max_iterations`, `active: false`, stop.
+   - If unresolved IDs did not change from previous iteration AND `ci_status` is `passing`: `status: safety_no_progress`, `active: false`, stop.
+10. Greptile fix pass:
+    - Resolve actionable Greptile findings in code.
+    - Run best-effort project checks locally if available.
+    - Create exactly one commit:
+      ```text
+      chisel: resolve greptile findings (iter N/MAX)
+      ```
+    - Push branch.
+11. Attempt GitHub thread resolution for fixed findings:
+    - Use `gh api graphql` `resolveReviewThread` only for high-confidence matches (same file + overlapping lines + missing from latest unresolved set).
+    - If mapping is ambiguous, skip and report.
+12. Update state file (`latest_score`, `unresolved_ids`, `ci_status`, `ci_failures`, `updated_at`) and continue.
 
 ## Step 4: Terminal Report
 
@@ -134,8 +163,10 @@ When loop ends (success or safety stop):
    - final status
    - iterations used
    - last score
+   - CI status and any failed check names
    - unresolved comment IDs
    - backup branch name
 3. Tell the user next action:
    - `success`: ready for human review/merge
-   - safety stop: explicit blockers and suggested manual follow-up
+   - `safety_ci_max_retries`: CI failures could not be auto-fixed; show failed checks and suggest manual intervention
+   - other safety stop: explicit blockers and suggested manual follow-up
