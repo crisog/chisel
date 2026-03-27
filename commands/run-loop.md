@@ -91,10 +91,19 @@ If any preflight check fails, stop with the precise remediation and do not write
 Repeat until terminal status:
 
 1. Increment `iteration`.
-2. Trigger review:
-   - Use Greptile MCP `trigger_code_review` for this PR.
+2. Ensure a review exists for the current HEAD:
+   - First, check for an existing review:
+     ```
+     list_code_reviews(name, remote, defaultBranch, prNumber=<PR>)
+     ```
+   - If a review with status `PENDING`, `REVIEWING_FILES`, or `GENERATING_SUMMARY` exists, **do not trigger a new one** — skip to step 3 and wait for it.
+   - If a review with status `COMPLETED` exists and its results are for the current HEAD commit (check the most recent review's timestamp is after the last push), **skip to step 4** and use those results directly.
+   - Otherwise (no review, or only `FAILED`/`SKIPPED` reviews), trigger a new one:
+     ```
+     trigger_code_review(name, remote, prNumber=<PR>)
+     ```
 3. Poll review status:
-   - Use `list_code_reviews`.
+   - Use `list_code_reviews` filtered by `prNumber`.
    - Wait between polls (`sleep 15`).
    - Timeout if review does not finish within a practical window.
 4. Fetch latest review data:
