@@ -3,7 +3,7 @@
   "description": "Autonomous PR refinement loop for GitHub + Greptile with stop-hook safety gates",
   "version": "0.1.0",
   "author": {
-    "name": "Cris Og"
+    "name": "crisog"
   },
   "homepage": "https://github.com/crisog/chisel",
   "repository": "https://github.com/crisog/chisel",

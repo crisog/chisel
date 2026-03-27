@@ -1,0 +1,18 @@
+{
+  "name": "chisel-dev",
+  "description": "Development marketplace for Chisel PR refinement plugin",
+  "owner": {
+    "name": "crisog"
+  },
+  "plugins": [
+    {
+      "name": "chisel",
+      "description": "Autonomous PR refinement loop for GitHub + Greptile with stop-hook safety gates",
+      "version": "0.1.0",
+      "source": "./",
+      "author": {
+        "name": "crisog"
+      }
+    }
+  ]
+}
