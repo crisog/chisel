@@ -55,8 +55,10 @@ Default safety stops:
 
 - `git`
 - `gh` CLI authenticated (`gh auth status`)
-- Greptile MCP configured in Claude Code
+- `GREPTILE_API_KEY` environment variable set (get one at [app.greptile.com](https://app.greptile.com) under Settings > Organization > API Keys)
 - `node` available (for stop/session-end hook runtime)
+
+The Greptile MCP server is bundled with the plugin and configured automatically on install.
 
 ## State Files
 
