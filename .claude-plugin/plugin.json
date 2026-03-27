@@ -8,8 +8,5 @@
   "homepage": "https://github.com/crisog/chisel",
   "repository": "https://github.com/crisog/chisel",
   "license": "MIT",
-  "keywords": ["github", "greptile", "pr", "review", "automation", "workflow"],
-  "skills": "./skills/",
-  "commands": "./commands/",
-  "hooks": "./hooks/hooks.json"
+  "keywords": ["github", "greptile", "pr", "review", "automation", "workflow"]
 }
