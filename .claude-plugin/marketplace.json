@@ -2,7 +2,7 @@
   "name": "chisel-dev",
   "description": "Development marketplace for the Chisel plugin",
   "owner": {
-    "name": "Cris Og"
+    "name": "crisog"
   },
   "plugins": [
     {
@@ -11,7 +11,7 @@
       "version": "0.1.0",
       "source": "./",
       "author": {
-        "name": "Cris Og"
+        "name": "crisog"
       }
     }
   ]
