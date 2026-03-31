@@ -1,66 +1,64 @@
 # Chisel
 
-Chisel is a Claude Code plugin for PR refinement driven by automated review.
+Chisel is a Claude Code plugin for autonomous PR refinement driven by automated review.
 
-Instead of treating local checks as the final evaluator, Chisel assumes the strongest critic is an external PR review system (Greptile in v1).
+Instead of treating local checks as the final evaluator, Chisel assumes the strongest critic is an external PR review system (Greptile). It runs parallel agents that self-correct against review feedback without needing you to babysit each PR.
 
-## Loop
+## How it works
 
 1. Make a change
 2. Open or update a PR
-3. Wait for automated review
-4. Fix findings
-5. Repeat until the target score or confidence is reached
+3. Trigger automated review
+4. Fix findings and CI failures
+5. Repeat until all gates pass or a safety stop fires
 
-Chisel uses automated PR review as the gate between iterations.
+## Success gate
 
-## v1 Focus
-
-- Claude Code plugin
-- GitHub PR workflow (`gh`)
-- Greptile MCP review tools
-- Stop-hook gates (`Stop`, `SubagentStop`) to prevent premature loop exits
-
-Default success gate:
+All three must be true:
 
 - Greptile confidence score `5/5`
 - Zero unresolved Greptile-generated comments
+- All GitHub required checks passing
 
-Default safety stops:
+## Safety stops
 
 - Max iterations reached
 - No progress across consecutive iterations
 - Review pipeline failure
+- CI failures not auto-fixable after 2 consecutive attempts
 
 ## Commands
 
-- `/chisel:run-loop [--pr N] [--max-iterations N]`
-- `/chisel:status [--pr N]`
-- `/chisel:cancel-loop [--force]`
-- `/chisel:help`
+- `/chisel:run-loop [--pr N] [--max-iterations N]` -- start the loop
+- `/chisel:status [--pr N]` -- check active run state
+- `/chisel:cancel-loop [--force]` -- stop an active loop
+- `/chisel:help` -- show usage info
 
-## Local Install (Development Marketplace)
+## Install
 
-1. Add this repo as a marketplace:
-   ```bash
-   /plugin marketplace add /Users/crisog/Code/Personal/chisel
-   ```
-2. Install Chisel:
-   ```bash
-   /plugin install chisel@chisel-dev
-   ```
-3. Restart Claude Code.
+### From the official marketplace
+
+```
+/plugin install chisel
+```
+
+### From GitHub
+
+```
+/plugin marketplace add crisog/chisel
+/plugin install chisel@chisel-dev
+```
 
 ## Requirements
 
 - `git`
 - `gh` CLI authenticated (`gh auth status`)
 - `GREPTILE_API_KEY` environment variable set (get one at [app.greptile.com](https://app.greptile.com) under Settings > Organization > API Keys)
-- `node` available (for stop/session-end hook runtime)
+- `node` available (for hook runtime)
 
 The Greptile MCP server is bundled with the plugin and configured automatically on install.
 
-## State Files
+## State files
 
 - Loop state: `.claude/chisel-loop.local.md` (at git root)
 - Run history: `.claude/chisel/runs/<pr>.json`
@@ -69,10 +67,4 @@ The Greptile MCP server is bundled with the plugin and configured automatically 
 
 ```bash
 ./tests/run-tests.sh
-```
-
-## Example Flow
-
-```text
-generate -> create PR -> wait for review -> fix findings -> repeat
 ```
